@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>未来型収入予測ダッシュボード</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts - より未来的なフォントを追加 -->  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* 共通フォントと背景 */
+    body { 
+      font-family: "Exo 2", sans-serif; /* 全体的に洗練されたフォント */
+      padding: 20px; 
+      background-color: #080a13; /* さらに深い、漆黒の背景 */
+      color: #e0e7ff; /* 柔らかいオフホワイト */
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* 背景のパーティクルエフェクト (CSSのみで実装) */
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at top left, rgba(68, 82, 250, 0.1) 0%, transparent 30%),
+                  radial-gradient(circle at bottom right, rgba(29, 203, 243, 0.1) 0%, transparent 30%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /* メインコンテナ - 高級感のあるカード */
+    .container { 
+      max-width: 720px; /* 少し広めに */
+      width: 100%;
+      background-color: #1a1f2c; /* ダークネイビーグレーのカード */
+      padding: 45px; 
+      border-radius: 25px; 
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(60, 70, 90, 0.3); /* 深い影と細い境界線 */
+      border: 2px solid transparent; /* グラデーションボーダーの準備 */
+      border-image: linear-gradient(45deg, #4c56e0, #1dcbf3, #a73bed) 1;
+      position: relative;
+      overflow: hidden;
+      animation: fadeIn 0.8s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* タイトル */
+    .app-title {
+      font-family: "Orbitron", sans-serif; /* 未来的なフォント */
+      color: transparent; /* テキスト自体は透明に */
+      background: linear-gradient(90deg, #1dcbf3, #4c56e0, #a73bed); /* 鮮やかなグラデーションテキスト */
+      -webkit-background-clip: text;
+      background-clip: text;
+      letter-spacing: 0.15em; 
+      font-weight: 900;
+      text-shadow: 0 0 15px rgba(29, 203, 243, 0.6), 0 0 30px rgba(76, 86, 224, 0.4); /* 強いネオンシャドウ */
+      margin-bottom: 50px !important;
+    }
+    
+    /* セクションタイトル */
+    .section-title {
+      color: #80e0ff; /* 明るいサイアンブルー */
+      border-bottom: 2px solid rgba(76, 86, 224, 0.5); /* 鮮やかな境界線 */
+      padding-bottom: 12px;
+      margin-bottom: 30px;
+      font-weight: 700;
+      font-size: 1.5rem;
+      position: relative;
+      text-transform: uppercase; /* 大文字 */
+      letter-spacing: 0.08em;
+    }
+    .section-title::before {
+      content: '///'; /* 装飾的なスラッシュ */
+      color: #a73bed;
+      margin-right: 10px;
+      font-size: 0.8em;
+      vertical-align: middle;
+    }
+
+    /* リスト */
+    ul { 
+      list-style: none;
+      padding: 0; 
+      margin-bottom: 40px;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+    ul li {
+      margin-bottom: 10px;
+      padding-left: 25px;
+      position: relative;
+      color: #c4d0e6;
+      transition: color 0.3s ease;
+    }
+    ul li:hover {
+      color: #e0e7ff;
+    }
+    ul li::before {
+      content: '✨'; /* キラキラ絵文字 */
+      color: #1dcbf3; 
+      font-size: 0.9em;
+      position: absolute;
+      left: 0;
+      top: 2px;
+      transform: rotate(-15deg);
+      transition: transform 0.3s ease;
+    }
+    ul li:hover::before {
+      transform: rotate(0deg) scale(1.1);
+    }
+    
+    /* 入力フィールド */
+    input { 
+      padding: 14px 18px; 
+      border-radius: 10px; 
+      border: 1px solid #4a5568;
+      width: 100%; 
+      box-sizing: border-box; 
+      background-color: #2a3140; /* 暗い背景 */
+      color: #e0e7ff;
+      transition: border-color 0.3s, background-color 0.3s, box-shadow 0.3s;
+      font-size: 1.1rem;
+      font-weight: 300;
+    }
+    input:focus {
+      outline: none;
+      border-color: #1dcbf3; 
+      background-color: #1f2530;
+      box-shadow: 0 0 0 3px rgba(29, 203, 243, 0.4), 0 0 15px rgba(29, 203, 243, 0.2);
+    }
+    /* 数字入力の上下矢印を非表示 */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    /* ボタン - モダンな「起動」エフェクト */
+    button { 
+      background: linear-gradient(90deg, #1dcbf3, #4c56e0); /* より鮮やかなグラデーション */
+      color: white; 
+      border: none; 
+      cursor: pointer; 
+      transition: all 0.3s cubic-bezier(.25,.8,.25,1); 
+      font-weight: 700; 
+      padding: 20px 25px; 
+      margin: 50px 0 20px; 
+      border-radius: 12px; 
+      width: 100%; 
+      box-sizing: border-box;
+      letter-spacing: 0.18em;
+      font-size: 1.2rem;
+      text-transform: uppercase;
+      box-shadow: 0 5px 20px rgba(29, 203, 243, 0.4), 0 0 0 2px rgba(29, 203, 243, 0.1); 
+      position: relative;
+      overflow: hidden;
+    }
+    button::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.4s ease, height 0.4s ease;
+    }
+    button:hover::after {
+      width: 300%;
+      height: 300%;
+    }
+    button:hover { 
+      background: linear-gradient(90deg, #0fb4d4, #3d46bb);
+      transform: translateY(-5px) scale(1.01); 
+      box-shadow: 0 12px 30px rgba(29, 203, 243, 0.7), 0 0 0 3px rgba(29, 203, 243, 0.2);
+    }
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 5px 15px rgba(29, 203, 243, 0.4);
+      transition: all 0.1s;
+    }
+    
+    /* 結果表示エリア - 最高の目立たせ方 */
+    .result { 
+      margin-top: 50px; 
+      padding: 40px; 
+      background-color: #0f131f; /* 背景をさらに暗く */
+      border-radius: 20px; 
+      border: 3px solid transparent;
+      border-image: linear-gradient(45deg, #1dcbf3, #a73bed) 1; /* グラデーションボーダー */
+      box-shadow: 0 0 35px rgba(29, 203, 243, 0.7), inset 0 0 15px rgba(0, 0, 0, 0.6); /* 強いグロー */
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .result::before {
+      content: '';
+      position: absolute;
+      top: -20px;
+      left: -20px;
+      right: -20px;
+      bottom: -20px;
+      background: linear-gradient(45deg, rgba(29, 203, 243, 0.1), rgba(167, 59, 237, 0.1));
+      z-index: 0;
+      filter: blur(30px);
+      pointer-events: none;
+    }
+    .result > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .result-title {
+      font-family: "Orbitron", sans-serif;
+      font-size: 1.8em;
+      color: #a73bed;
+      text-shadow: 0 0 10px rgba(167, 59, 237, 0.5);
+      letter-spacing: 0.05em;
+      margin-bottom: 25px !important;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .result-title::before, .result-title::after {
+      content: '—';
+      margin: 0 15px;
+      color: #1dcbf3;
+      font-size: 0.8em;
+      text-shadow: none;
+    }
+
+
+    .highlight-value {
+      font-family: "Orbitron", sans-serif;
+      font-weight: 900;
+      font-size: 5.5em; /* さらに大きく */
+      color: transparent;
+      background: linear-gradient(45deg, #1dcbf3, #a73bed);
+      -webkit-background-clip: text;
+      background-clip: text;
+      text-shadow: 0 0 20px rgba(29, 203, 243, 0.8), 0 0 40px rgba(167, 59, 237, 0.6);
+      line-height: 1;
+      letter-spacing: -0.06em; 
+      display: inline-block; /* text-shadowを適用するため */
+      animation: pulseGlow 1.5s infinite alternate;
+    }
+    @keyframes pulseGlow {
+      from { text-shadow: 0 0 20px rgba(29, 203, 243, 0.8), 0 0 40px rgba(167, 59, 237, 0.6); }
+      to { text-shadow: 0 0 25px rgba(29, 203, 243, 1), 0 0 50px rgba(167, 59, 237, 0.8); }
+    }
+
+    .currency-unit {
+      font-size: 0.4em; /* 円マークを小さく */
+      vertical-align: super;
+      color: #e0e7ff;
+      opacity: 0.8;
+      margin-left: 5px;
+    }
+
+    .sub-value {
+      color: #a0aec0;
+      font-size: 1.2em;
+      margin-top: 20px;
+      font-weight: 300;
+      letter-spacing: 0.03em;
+    }
+    .sub-value .highlight-text {
+      font-weight: 700;
+      color: #1dcbf3;
+      text-shadow: 0 0 8px rgba(29, 203, 243, 0.5);
+    }
+    .info-footer {
+      font-size: 0.85em;
+      margin-top: 30px;
+      color: #6b7280;
+      border-top: 1px dashed #3f4a5c;
+      padding-top: 15px;
+    }
+
+    /* レスポンシブ対応の調整 */
+    @media (min-width: 640px) {
+      .input-group {
+        display: flex;
+        gap: 30px; /* 隙間を広めに */
+      }
+      .input-group > div {
+        flex: 1;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .app-title {
+        font-size: 2.5rem;
+      }
+      .highlight-value {
+        font-size: 4em;
+      }
+      .container {
+        padding: 30px;
+      }
+      .section-title {
+        font-size: 1.3rem;
+      }
+    }
+    @media (max-width: 480px) {
+      .app-title {
+        font-size: 2rem;
+      }
+      .highlight-value {
+        font-size: 3em;
+      }
+      button {
+        font-size: 1rem;
+        padding: 15px;
+      }
+      .section-title {
+        font-size: 1.1rem;
+      }
+      ul li {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="text-3xl md:text-4xl font-extrabold mb-10 text-center app-title">
+      🚀 未来型収入予測ダッシュボード 🌠
+    </h1>
+    
+    <p class="section-title">勤務スケジュール プロファイル</p>
+    <ul class="text-base space-y-2">
+      <li>火曜日：<span class="font-bold text-blue-300">8:30 - 12:30</span> (実働 4時間)</li>
+      <li>水曜日：<span class="font-bold text-blue-300">9:00 - 14:00</span> (実働 5時間) <span class="text-purple-400">(第2水曜は休み)</span></li>
+      <li>木曜日：<span class="font-bold text-blue-300">9:00 - 12:30</span> (実働 3.5時間) <span class="text-yellow-300">(休み明け木曜は 9:30 - 13:30 / 4時間)</span></li>
+      <li>金曜日：<span class="font-bold text-blue-300">9:00 - 12:30</span> (実働 3.5時間)</li>
+    </ul>
+
+    <p class="section-title">報酬レート</p>
+    <p class="text-base mb-8 text-gray-400">時給: <span class="font-bold text-green-300">1,116円</span> ／ 交通費: <span class="font-bold text-green-300">460円/日</span></p>
+
+    <div class="input-group">
+      <!-- 年入力 -->      <div>
+        <label class="block text-sm font-semibold text-blue-300 mb-2">🗓️ 対象年</label>
+        <input id="year" type="number" value="2025" min="2024" max="2030" />
+      </div>
+      <!-- 月入力 -->      <div>
+        <label class="block text-sm font-semibold text-blue-300 mb-2">🌌 対象月</label>
+        <input id="month" type="number" value="11" min="1" max="12" />
+      </div>
+    </div>
+
+    <button id="calcBtn">予測収入を計算する 🚀</button>
+
+    <div class="result" id="result">
+      <div class="text-xl font-bold text-gray-400 mb-4 result-title">
+        計算ボタンを押して結果を表示
+      </div>
+      <p class="text-3xl font-bold text-gray-300 mb-4">
+        <span class="highlight-value">0<span class="currency-unit">円</span></span>
+      </p>
+      <p class="sub-value">
+        -- <span class="highlight-text">予測収入合計 (JPY)</span> --
+      </p>
+    </div>
+  </div>
+
+<script>
+  // 祝日リスト (YYYY-MM-DD形式)
+  const holidays = [
+    "2025-01-01", "2025-01-13", "2025-02-11", "2025-02-23",
+    "2025-03-20", "2025-04-29", "2025-05-03", "2025-05-04",
+    "2025-05-05", "2025-07-21", "2025-08-11", "2025-09-15",
+    "2025-09-23", "2025-10-13", "2025-11-03", "2025-11-23",
+  ];
+
+  /**
+   * 指定された日が祝日かどうかを判定する
+   * @param {Date} date - 判定する日付
+   * @returns {boolean} 祝日であれば true
+   */
+  function isHoliday(date) {
+    const d = date.toISOString().slice(0, 10);
+    return holidays.includes(d);
+  }
+
+  /**
+   * 指定された年月の第2水曜日の日付(1-31)を取得する
+   * @param {number} year - 年
+   * @param {number} month - 月 (0-indexed: 0=1月, 11=12月)
+   * @returns {number} 第2水曜日の日 (1-31)
+   */
+  function getSecondWednesdayDay(year, month) {
+    let count = 0;
+    for (let d = 1; d <= 31; d++) {
+      const date = new Date(year, month, d);
+      date.setHours(12, 0, 0, 0); 
+
+      if (date.getMonth() !== month) break;
+      if (date.getDay() === 3) count++; // 3は水曜日
+      if (count === 2) return d;
+    }
+    return -1;
+  }
+
+  /**
+   * 前日が日曜日かどうかを判定する (休み明け木曜日の判定に使用)
+   * @param {Date} date - 判定する日付 (木曜日を想定)
+   * @returns {boolean} 前日が日曜日であれば true
+   */
+  function isDayAfterSunday(date) {
+    const prev = new Date(date);
+    prev.setDate(date.getDate() - 1);
+    prev.setHours(12, 0, 0, 0); 
+
+    return prev.getDay() === 0; // 0は日曜日
+  }
+
+  /**
+   * 特定の日の勤務時間（時間）を計算する
+   * @param {Date} date - 勤務時間を計算する日付
+   * @returns {number} 勤務時間
+   */
+  function getWorkHours(date) {
+    const dayOfWeek = date.getDay(); // 0=日, 1=月, 2=火, 3=水, 4=木, 5=金, 6=土
+
+    // 週末と祝日は休み
+    if (dayOfWeek === 0 || dayOfWeek === 6 || isHoliday(date)) return 0;
+
+    let hours = 0;
+
+    if (dayOfWeek === 2) { // 火曜日
+      hours = 4;
+    } else if (dayOfWeek === 3) { // 水曜日
+      // 第2水曜日は休み
+      const secondWedDay = getSecondWednesdayDay(date.getFullYear(), date.getMonth());
+      if (date.getDate() === secondWedDay) return 0;
+      hours = 5;
+    } else if (dayOfWeek === 4) { // 木曜日
+      // 休み明け木曜（前日が日曜日）は4時間、それ以外は3.5時間
+      hours = isDayAfterSunday(date) ? 4 : 3.5;
+    } else if (dayOfWeek === 5) { // 金曜日
+      hours = 3.5;
+    }
+    // 月曜日の場合 (dayOfWeek=1) は hours = 0 のまま
+    return hours;
+  }
+
+
+  /**
+   * 収入を計算し、結果をUIに表示する
+   */
+  function calculateIncome() {
+    const yearInput = document.getElementById("year");
+    const monthInput = document.getElementById("month");
+    
+    const year = parseInt(yearInput.value);
+    const month = parseInt(monthInput.value); // 1-based index (1-12)
+
+    if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
+      document.getElementById("result").innerHTML = `
+        <div class="text-xl font-bold text-red-400 result-title">🚨 エラー 🚨</div>
+        <p class="sub-value">有効な年と月を入力してください。</p>
+      `;
+      return;
+    }
+
+    const hourlyWage = 1116;
+    const dailyTransportFee = 460;
+
+    let totalIncome = 0;
+    let workingDays = 0;
+
+    // 1. 給与計算期間の特定（前月26日 〜 当月25日）
+    
+    // 当月25日 (monthは1-indexedなので、Dateコンストラクタでは-1する)
+    const endDate = new Date(year, month - 1, 25);
+    endDate.setHours(12, 0, 0, 0); 
+    
+    // 前月26日
+    const startMonth = month === 1 ? 12 : month - 1; 
+    const startYear = month === 1 ? year - 1 : year;
+    // Dateコンストラクタは月を0-indexedで受け取るため、startMonthも-1する
+    const startDate = new Date(startYear, startMonth - 1, 26);
+    startDate.setHours(12, 0, 0, 0); 
+
+    // 2. 期間内の全日をループ
+    const currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+        const hours = getWorkHours(currentDate);
+
+        if (hours > 0) {
+            totalIncome += hours * hourlyWage + dailyTransportFee;
+            workingDays++;
+        }
+
+        // 日付を1日進める
+        currentDate.setDate(currentDate.getDate() + 1);
+        currentDate.setHours(12, 0, 0, 0); 
+    }
+
+    // 結果をカンマ区切りで表示
+    const formattedIncome = Math.round(totalIncome).toLocaleString('ja-JP');
+    
+    document.getElementById("result").innerHTML = `
+      <div class="result-title">
+        🗓️ ${year}年 ${month}月 の予測結果 🌠
+      </div>
+      <p class="text-3xl font-bold text-gray-300 mb-4">
+        <span class="highlight-value">${formattedIncome}<span class="currency-unit">円</span></span>
+      </p>
+      <p class="sub-value">
+        💼 勤務日数: <span class="font-extrabold highlight-text">${workingDays}日</span>
+      </p>
+      <p class="info-footer">
+        対象期間: ${startDate.getFullYear()}/${startDate.getMonth() + 1}/26 〜 ${endDate.getFullYear()}/${endDate.getMonth() + 1}/25
+      </p>
+    `;
+  }
+
+  document.getElementById("calcBtn").addEventListener("click", calculateIncome);
+
+  // 初期表示の計算を実行
+  window.onload = calculateIncome;
+</script>
+</body>
+</html>
