@@ -303,12 +303,12 @@
             扶養　計算アプリ
         </h1>
         
-        <p class="section-title">勤務スケジュール プロファイル</p>
+        <p class="section-title">勤務スケジュール</p>
         <ul class="text-base space-y-2">
-            <li>火曜日：<span class="font-bold text-blue-300">8:30 - 12:30</span> (実働 4時間)</li>
-            <li>水曜日：<span class="font-bold text-blue-300">9:00 - 14:00</span> (実働 5時間) <span class="text-purple-400">(第2水曜は休み)</span></li>
-            <li>木曜日：<span class="font-bold text-blue-300">9:00 - 12:30</span> (実働 3.5時間) <span class="text-yellow-300">(第2木曜は 9:30 - 13:30 / 4時間)</span> <span class="text-red-400"></span></li>
-            <li>金曜日：<span class="font-bold text-blue-300">9:00 - 12:30</span> (実働 3.5時間)</li>
+            <li>火曜日：<span class="font-bold text-blue-300">8:30-12:30</span> (実働 4時間)</li>
+            <li>水曜日：<span class="font-bold text-blue-300">9:00-14:00</span> (実働 5時間) <span class="text-purple-400">(第2水休み)</span></li>
+            <li>木曜日：<span class="font-bold text-blue-300">9:00-12:30</span> (実働 3.5時間) <span class="text-yellow-300">(第2木9:30 - 13:30/4時間)</span> <span class="text-red-400"></span></li>
+            <li>金曜日：<span class="font-bold text-blue-300">9:00-12:30</span> (実働 3.5時間)</li>
         </ul>
 
         <p class="section-title">報酬レート</p>
@@ -334,7 +334,7 @@
             </div>
         </div>
 
-        <button id="calcBtn">収入を予測計算する</button>
+        <button id="calcBtn">収入を予測</button>
 
         <div class="result" id="result">
             <div class="text-xl font-bold text-gray-400 mb-4 result-title">
@@ -542,7 +542,7 @@
                     <span class="highlight-value">${annualResult.income.toLocaleString('ja-JP')}<span class="currency-unit">円</span></span>
                 </p>
                 <p class="sub-value">
-                    ⚠️ <span class="highlight-text">103万円 / 130万円 / 106万円</span> の壁チェックに活用
+                    ⚠️ <span class="highlight-text">103万円 /130万円 /106万円</span> の壁チェックに活用
                 </p>
                 <p class="info-footer">
                     年間対象期間: ${annualResult.startDate.getFullYear()}/1/28 〜 ${annualResult.endDate.getFullYear()}/12/28
