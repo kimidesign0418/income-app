@@ -180,7 +180,7 @@
         /* 結果表示エリア */
         .result {
             margin-top: 40px;
-            padding: 30px;
+            padding: 20px 15px; /* 左右のパディングを減らす */
             background-color: #0f131f;
             border-radius: 18px;
             border: 2px solid transparent;
@@ -220,20 +220,20 @@
             font-family: "Orbitron", sans-serif;
             font-weight: 900;
             /* モバイル/デフォルトの月額表示をさらに縮小 */
-            font-size: 2.8em; 
+            font-size: 1.5em; /* 修正: さらに縮小 */
             color: transparent;
             background: linear-gradient(45deg, var(--color-accent-blue), var(--color-accent-purple));
             -webkit-background-clip: text;
             background-clip: text;
             text-shadow: 0 0 15px rgba(29, 203, 243, 0.6), 0 0 30px rgba(167, 59, 237, 0.4);
-            line-height: 1;
-            letter-spacing: -0.05em;
+            line-height: 1.1; /* 行間を調整 */
+            letter-spacing: -0.05em; /* 詰め気味に */
             display: inline-block;
             animation: none; /* 年間結果だけアニメーションを適用 */
         }
         .annual-value .highlight-value {
-            /* モバイル/デフォルトの年額表示をさらに縮小 */
-            font-size: 2.6em; 
+            /* モバイル/デフォルトの年額表示をさらに縮小 (1.7em) */
+            font-size: 1.5em; 
             animation: pulseGlow 1.5s infinite alternate;
         }
 
@@ -280,15 +280,16 @@
         .input-group > div {
             width: 50%; 
         }
+        
         @media (min-width: 640px) {
             .container { max-width: 720px; padding: 45px; }
             .app-title { font-size: 3rem; }
+            /* デスクトップの年額表示 */
             .annual-value .highlight-value { 
-                /* デスクトップ表示も縮小 */
                 font-size: 4.0em; 
             }
+            /* デスクトップの月額表示 */
             .highlight-value { 
-                /* デスクトップの月額表示も縮小 */
                 font-size: 3.5em; 
             }
             .input-group { justify-content: center; gap: 20px; }
@@ -306,7 +307,7 @@
         <ul class="text-base space-y-2">
             <li>火曜日：<span class="font-bold text-blue-300">8:30 - 12:30</span> (実働 4時間)</li>
             <li>水曜日：<span class="font-bold text-blue-300">9:00 - 14:00</span> (実働 5時間) <span class="text-purple-400">(第2水曜は休み)</span></li>
-            <li>木曜日：<span class="font-bold text-blue-300">9:00 - 12:30</span> (実働 3.5時間) <span class="text-yellow-300">(第2木曜は 9:30 - 13:30 / 4時間)</span> <span class="text-red-400">(← 修正箇所)</span></li>
+            <li>木曜日：<span class="font-bold text-blue-300">9:00 - 12:30</span> (実働 3.5時間) <span class="text-yellow-300">(第2木曜は 9:30 - 13:30 / 4時間)</span> <span class="text-red-400"></span></li>
             <li>金曜日：<span class="font-bold text-blue-300">9:00 - 12:30</span> (実働 3.5時間)</li>
         </ul>
 
