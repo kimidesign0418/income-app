@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>扶養枠シミュレーター | 年収最適化コンソール</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght=300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         /* CSS variables for consistent colors */
         :root {
@@ -219,7 +219,7 @@
         .highlight-value {
             font-family: "Orbitron", sans-serif;
             font-weight: 900;
-            font-size: 3em; /* 少し小さく */
+            font-size: 3em;
             color: transparent;
             background: linear-gradient(45deg, var(--color-accent-blue), var(--color-accent-purple));
             -webkit-background-clip: text;
@@ -231,7 +231,8 @@
             animation: none; /* 年間結果だけアニメーションを適用 */
         }
         .annual-value .highlight-value {
-            font-size: 4em;
+            /* モバイル向けの初期サイズを調整 (既存の 3.5em から 3.0em に縮小) */
+            font-size: 3.0em; /* 修正箇所: フォントサイズを小さく */
             animation: pulseGlow 1.5s infinite alternate;
         }
 
@@ -280,7 +281,10 @@
         @media (min-width: 640px) {
             .container { max-width: 720px; padding: 45px; }
             .app-title { font-size: 3rem; }
-            .annual-value .highlight-value { font-size: 5.5em; }
+            .annual-value .highlight-value { 
+                /* デスクトップ表示も少し小さく (5.5em から 4.5em に縮小) */
+                font-size: 4.5em; /* 修正箇所: フォントサイズを小さく */
+            }
             .highlight-value { font-size: 4em; }
             .input-group { justify-content: center; gap: 20px; }
             .input-group > div { width: 30%; }
@@ -297,7 +301,7 @@
         <ul class="text-base space-y-2">
             <li>火曜日：<span class="font-bold text-blue-300">8:30 - 12:30</span> (実働 4時間)</li>
             <li>水曜日：<span class="font-bold text-blue-300">9:00 - 14:00</span> (実働 5時間) <span class="text-purple-400">(第2水曜は休み)</span></li>
-            <li>木曜日：<span class="font-bold text-blue-300">9:00 - 12:30</span> (実働 3.5時間) <span class="text-yellow-300">(休み明け木曜は 9:30 - 13:30 / 4時間)</span></li>
+            <li>木曜日：<span class="font-bold text-blue-300">9:00 - 12:30</span> (実働 3.5時間) <span class="text-yellow-300">(第2木曜は 9:30 - 13:30 / 4時間)</span> <span class="text-red-400">(← 修正箇所)</span></li>
             <li>金曜日：<span class="font-bold text-blue-300">9:00 - 12:30</span> (実働 3.5時間)</li>
         </ul>
 
@@ -362,35 +366,24 @@
     }
 
     /**
-     * 指定された年月の第2水曜日の日付(1-31)を取得する
+     * 指定された年月の第N曜日の日付(1-31)を取得する
      * @param {number} year - 年
      * @param {number} month - 月 (0-indexed: 0=1月, 11=12月)
-     * @returns {number} 第2水曜日の日 (1-31)
+     * @param {number} targetDayOfWeek - 曜日 (0=日, 1=月, ..., 6=土)
+     * @param {number} n - 何番目か (2=第2)
+     * @returns {number} 第N曜日の日 (1-31)
      */
-    function getSecondWednesdayDay(year, month) {
+    function getNthDayOfWeek(year, month, targetDayOfWeek, n) {
         let count = 0;
         for (let d = 1; d <= 31; d++) {
             const date = new Date(year, month, d);
             date.setHours(12, 0, 0, 0); // 時刻を固定し、サマータイムの影響を防ぐ
 
             if (date.getMonth() !== month) break;
-            if (date.getDay() === 3) count++; // 3は水曜日
-            if (count === 2) return d;
+            if (date.getDay() === targetDayOfWeek) count++;
+            if (count === n) return d;
         }
         return -1;
-    }
-
-    /**
-     * 前日が日曜日かどうかを判定する (休み明け木曜日の判定に使用)
-     * @param {Date} date - 判定する日付 (木曜日を想定)
-     * @returns {boolean} 前日が日曜日であれば true
-     */
-    function isDayAfterSunday(date) {
-        const prev = new Date(date);
-        prev.setDate(date.getDate() - 1);
-        prev.setHours(12, 0, 0, 0);
-
-        return prev.getDay() === 0; // 0は日曜日
     }
 
     /**
@@ -400,6 +393,8 @@
      */
     function getWorkHours(date) {
         const dayOfWeek = date.getDay(); // 0=日, 1=月, 2=火, 3=水, 4=木, 5=金, 6=土
+        const year = date.getFullYear();
+        const monthIndex = date.getMonth();
 
         // 週末と祝日は休み
         if (dayOfWeek === 0 || dayOfWeek === 6 || isHoliday(date)) return 0;
@@ -409,13 +404,14 @@
         if (dayOfWeek === 2) { // 火曜日
             hours = 4;
         } else if (dayOfWeek === 3) { // 水曜日
-            // 第2水曜日は休み
-            const secondWedDay = getSecondWednesdayDay(date.getFullYear(), date.getMonth());
+            // 第2水曜日は休み (3は水曜日, 2は第2)
+            const secondWedDay = getNthDayOfWeek(year, monthIndex, 3, 2);
             if (date.getDate() === secondWedDay) return 0;
             hours = 5;
         } else if (dayOfWeek === 4) { // 木曜日
-            // 休み明け木曜（前日が日曜日）は4時間、それ以外は3.5時間
-            hours = isDayAfterSunday(date) ? 4 : 3.5;
+            // 修正: 第2木曜日は4時間、それ以外は3.5時間 (4は木曜日, 2は第2)
+            const secondThuDay = getNthDayOfWeek(year, monthIndex, 4, 2);
+            hours = (date.getDate() === secondThuDay) ? 4 : 3.5;
         } else if (dayOfWeek === 5) { // 金曜日
             hours = 3.5;
         }
@@ -464,7 +460,6 @@
      */
     function calculateMonthlyPayPeriodIncome(year, monthIndex) {
         // 給与期間: 前月26日 〜 当月25日
-        // 1月の給与計算対象月(monthIndex=0)の場合: 前年12月26日 〜 当年1月25日
         
         const startDate = new Date(year, monthIndex, 26);
         startDate.setMonth(startDate.getMonth() - 1); // 1ヶ月前に戻して26日を開始日とする
@@ -483,11 +478,9 @@
      */
     function calculateAnnualIncome(year) {
         // 年間期間: 1月28日 〜 12月28日
-        // 1月 (0-indexed) 28日
         const startDate = new Date(year, 0, 28);
         startDate.setHours(12, 0, 0, 0);
         
-        // 12月 (11-indexed) 28日
         const endDate = new Date(year, 11, 28);
         endDate.setHours(12, 0, 0, 0);
 
