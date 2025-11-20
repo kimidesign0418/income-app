@@ -39,7 +39,7 @@
             width: 100%;
             height: 100%;
             background: radial-gradient(circle at top left, rgba(68, 82, 250, 0.1) 0%, transparent 30%),
-                        radial-gradient(circle at bottom right, rgba(29, 203, 243, 0.1) 0%, transparent 30%);
+                         radial-gradient(circle at bottom right, rgba(29, 203, 243, 0.1) 0%, transparent 30%);
             pointer-events: none;
             z-index: -1;
         }
@@ -142,6 +142,7 @@
             background-color: #1f2530;
             box-shadow: 0 0 0 2px rgba(29, 203, 243, 0.3), 0 0 10px rgba(29, 203, 243, 0.15);
         }
+        /* input type="number" のスピンボタンを非表示 */
         input[type="number"]::-webkit-outer-spin-button,
         input[type="number"]::-webkit-inner-spin-button {
             -webkit-appearance: none;
@@ -270,15 +271,28 @@
             border-top: 1px dashed #3f4a5c;
             padding-top: 12px;
         }
+        
+        .reset-button {
+            background-color: #3d46bb;
+            margin-top: 10px;
+            padding: 8px 15px;
+            font-size: 0.8rem;
+            width: auto;
+            border-radius: 8px;
+        }
 
         /* モバイル向けレイアウト */
         .input-group {
             display: flex;
             gap: 15px;
             margin-bottom: 20px;
+            flex-wrap: wrap; /* モバイルで折り返す */
         }
         .input-group > div {
-            width: 50%; 
+            width: 100%; /* モバイルではフル幅 */
+        }
+        .input-group.input-row > div {
+             width: calc(50% - 7.5px);
         }
         
         @media (min-width: 640px) {
@@ -292,8 +306,9 @@
             .highlight-value { 
                 font-size: 3.5em; 
             }
-            .input-group { justify-content: center; gap: 20px; }
-            .input-group > div { width: 30%; }
+            .input-group.input-row { justify-content: center; gap: 20px; }
+            .input-group.input-row > div { width: 30%; }
+            .input-group > div { width: 100%; }
         }
     </style>
 </head>
@@ -315,13 +330,13 @@
         <p class="section-title">報酬レート</p>
         <p class="text-base mb-8 text-gray-400">時給: <span class="font-bold text-green-300">1,116円</span> ／ 交通費: <span class="font-bold text-green-300">460円/日</span></p>
 
-        <div class="input-group">
+        <div class="input-group input-row">
             <!-- 年入力 -->
             <div>
                 <label class="block text-sm font-semibold text-blue-300 mb-2 text-center">対象年</label>
                 <input id="year" type="number" value="2025" min="2024" max="2030" />
             </div>
-            <!-- 月入力 (復活) -->
+            <!-- 月入力 -->
             <div>
                 <label class="block text-sm font-semibold text-blue-300 mb-2 text-center">給与計算対象月</label>
                 <select id="month">
@@ -335,7 +350,23 @@
             </div>
         </div>
 
-        <button id="calcBtn">収入を予測</button>
+        <!-- NEW: 調整用入力フィールド -->
+        <div class="input-group">
+            <div>
+                <label class="block text-sm font-semibold text-red-300 mb-2 text-center">実働時間の調整 (±時間)</label>
+                <!-- NOTE: type="number" だとモバイルで小数点が入力しにくい場合があるため、必要に応じて type="text" に変更することを検討しても良い -->
+                <input id="adjustmentHours" type="number" value="0" placeholder="例: -7.5, +4" />
+                <p class="text-xs text-gray-500 mt-2 text-center">※休んだ時間: マイナス(例: -4), 追加で働いた時間: プラス(例: +3)</p>
+            </div>
+        </div>
+
+
+        <button id="calcBtn">収入を予測 & 計算実行</button>
+        
+        <button id="resetAdjustmentsBtn" class="reset-button">
+            全ての月次調整をリセット
+        </button>
+
 
         <div class="result" id="result">
             <div class="text-xl font-bold text-gray-400 mb-4 result-title">
@@ -348,11 +379,14 @@
                 -- <span class="highlight-text">予測収入 (JPY)</span> --
             </p>
         </div>
+        
+        <p class="info-footer text-center mt-6 text-yellow-400 text-sm">
+            ※月次調整額はブラウザのLocalStorageに保存されています。
+        </p>
     </div>
 
 <script>
     // 祝日リスト (YYYY-MM-DD形式)
-    // 2025年の正確な祝日データを使用
     const holidays = [
         "2025-01-01", "2025-01-13", "2025-02-11", "2025-02-23", 
         "2025-02-24", // 振替休日
@@ -368,6 +402,7 @@
      * @returns {boolean} 祝日であれば true
      */
     function isHoliday(date) {
+        // 時刻の影響を排除するため、YYYY-MM-DD形式で比較
         const d = date.toISOString().slice(0, 10);
         return holidays.includes(d);
     }
@@ -411,12 +446,12 @@
         if (dayOfWeek === 2) { // 火曜日
             hours = 4;
         } else if (dayOfWeek === 3) { // 水曜日
-            // 第2水曜日は休み (3は水曜日, 2は第2)
+            // 第2水曜日は休み
             const secondWedDay = getNthDayOfWeek(year, monthIndex, 3, 2);
             if (date.getDate() === secondWedDay) return 0;
             hours = 5;
         } else if (dayOfWeek === 4) { // 木曜日
-            // 修正: 第2木曜日は4時間、それ以外は3.5時間 (4は木曜日, 2は第2)
+            // 第2木曜日は4時間、それ以外は3.5時間
             const secondThuDay = getNthDayOfWeek(year, monthIndex, 4, 2);
             hours = (date.getDate() === secondThuDay) ? 4 : 3.5;
         } else if (dayOfWeek === 5) { // 金曜日
@@ -430,11 +465,12 @@
      * 指定された期間の収入を計算するコア関数
      * @param {Date} startDate - 計算開始日
      * @param {Date} endDate - 計算終了日
-     * @returns {{income: number, workingDays: number, startDate: Date, endDate: Date}} 収入合計と勤務日数
+     * @returns {{income: number, workingDays: number, totalHours: number, startDate: Date, endDate: Date}} 収入合計と勤務日数
      */
     function calculateIncomeForPeriod(startDate, endDate) {
         let totalIncome = 0;
         let workingDays = 0;
+        let totalHours = 0;
 
         const hourlyWage = 1116;
         const dailyTransportFee = 460;
@@ -446,8 +482,10 @@
             const hours = getWorkHours(currentDate);
 
             if (hours > 0) {
+                // 勤務時間に応じた収入と交通費を加算
                 totalIncome += hours * hourlyWage + dailyTransportFee;
                 workingDays++;
+                totalHours += hours;
             }
 
             // 日付を1日進める
@@ -455,17 +493,17 @@
             currentDate.setHours(12, 0, 0, 0);
         }
 
-        return { income: Math.round(totalIncome), workingDays: workingDays, startDate: startDate, endDate: endDate };
+        return { income: Math.round(totalIncome), workingDays: workingDays, totalHours: totalHours, startDate: startDate, endDate: endDate };
     }
 
-
     /**
-     * 月次給与期間（前月26日 〜 当月25日）の収入を計算する
+     * 月次給与期間（前月26日 〜 当月25日）の収入を計算し、調整額を適用する
      * @param {number} year - 対象年
      * @param {number} monthIndex - 対象月 (0-indexed: 0=1月)
-     * @returns {{income: number, workingDays: number, startDate: Date, endDate: Date}} 収入合計と勤務日数
+     * @param {number} adjustmentHours - 手動で調整する時間（プラスまたはマイナス）
+     * @returns {{income: number, workingDays: number, totalHours: number, adjustmentIncome: number, startDate: Date, endDate: Date}} 収入合計と勤務日数
      */
-    function calculateMonthlyPayPeriodIncome(year, monthIndex) {
+    function calculateMonthlyPayPeriodIncome(year, monthIndex, adjustmentHours) {
         // 給与期間: 前月26日 〜 当月25日
         
         const startDate = new Date(year, monthIndex, 26);
@@ -475,23 +513,82 @@
         const endDate = new Date(year, monthIndex, 25);
         endDate.setHours(12, 0, 0, 0);
         
-        return calculateIncomeForPeriod(startDate, endDate);
+        const fixedResult = calculateIncomeForPeriod(startDate, endDate);
+        
+        const hourlyWage = 1116;
+        // 調整時間による収入調整額を計算（四捨五入）
+        const adjustmentIncome = Math.round(adjustmentHours * hourlyWage);
+
+        const adjustedIncome = fixedResult.income + adjustmentIncome;
+        
+        return { 
+            income: adjustedIncome, 
+            workingDays: fixedResult.workingDays, 
+            totalHours: fixedResult.totalHours,
+            adjustmentIncome: adjustmentIncome,
+            startDate: fixedResult.startDate, 
+            endDate: fixedResult.endDate 
+        };
     }
 
     /**
-     * 年間給与期間（1月28日 〜 12月28日）の収入を計算する
+     * ★NEW★ 月次調整額をlocalStorageに保存する
      * @param {number} year - 対象年
-     * @returns {{income: number, workingDays: number, startDate: Date, endDate: Date}} 収入合計と勤務日数
+     * @param {number} monthIndex - 対象月 (0-indexed: 0=1月)
+     * @param {number} adjustmentIncome - 調整による収入額 (円)
+     */
+    function saveAdjustment(year, monthIndex, adjustmentIncome) {
+        // キー形式: YYYY-M (例: "2025-0" for Jan, "2025-11" for Dec)
+        const key = `${year}-${monthIndex}`;
+        try {
+            const storedData = JSON.parse(localStorage.getItem('annualAdjustments') || '{}');
+            storedData[key] = adjustmentIncome;
+            localStorage.setItem('annualAdjustments', JSON.stringify(storedData));
+        } catch (error) {
+            console.error("LocalStorageへの保存中にエラーが発生しました:", error);
+        }
+    }
+
+
+    /**
+     * 年間給与期間（1月28日 〜 12月28日）の収入を計算する（★調整額を反映★）
+     * @param {number} year - 対象年
+     * @returns {{income: number, workingDays: number, totalHours: number, totalAdjustmentIncome: number, startDate: Date, endDate: Date}}
      */
     function calculateAnnualIncome(year) {
-        // 年間期間: 1月28日 〜 12月28日
+        // 年間期間: 1月28日 〜 12月28日 (扶養枠確認用の基準期間)
         const startDate = new Date(year, 0, 28);
         startDate.setHours(12, 0, 0, 0);
         
         const endDate = new Date(year, 11, 28);
         endDate.setHours(12, 0, 0, 0);
 
-        return calculateIncomeForPeriod(startDate, endDate);
+        // 1. 固定スケジュールによる年間収入を計算
+        const fixedResult = calculateIncomeForPeriod(startDate, endDate);
+        
+        // 2. localStorageから保存された全ての月次調整額を取得し、加算する
+        const storedData = JSON.parse(localStorage.getItem('annualAdjustments') || '{}');
+        let totalAdjustmentIncome = 0;
+
+        // 1月から12月までの月次調整額を合計する
+        for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
+            const key = `${year}-${monthIndex}`;
+            // 保存された調整額がなければ 0
+            const adjustment = storedData[key] || 0; 
+            totalAdjustmentIncome += adjustment;
+        }
+
+        // 3. 調整を加えた最終的な年間収入
+        const adjustedAnnualIncome = fixedResult.income + totalAdjustmentIncome;
+
+        return { 
+            income: adjustedAnnualIncome, 
+            workingDays: fixedResult.workingDays, 
+            totalHours: fixedResult.totalHours, 
+            totalAdjustmentIncome: totalAdjustmentIncome, // 年次調整額を返す
+            startDate: fixedResult.startDate, 
+            endDate: fixedResult.endDate 
+        };
     }
 
     /**
@@ -500,10 +597,12 @@
     function calculateAndDisplayIncome() {
         const yearInput = document.getElementById("year");
         const monthSelect = document.getElementById("month");
+        const adjustmentInput = document.getElementById("adjustmentHours");
         
         const year = parseInt(yearInput.value);
-        // monthSelect.valueは文字列（0-11）。parseIntで数値に変換
-        const monthIndex = parseInt(monthSelect.value); 
+        const monthIndex = parseInt(monthSelect.value);
+        // parseFloat()で正確な数値（負の値や小数も含む）に変換
+        const adjustmentHours = parseFloat(adjustmentInput.value) || 0;
 
         if (isNaN(year) || year < 2024 || year > 2030 || isNaN(monthIndex)) {
             document.getElementById("result").innerHTML = `
@@ -513,12 +612,27 @@
             return;
         }
 
-        // 1. 月次給与期間の計算
-        const monthlyResult = calculateMonthlyPayPeriodIncome(year, monthIndex);
+        // 1. 月次給与期間の計算 (調整込み)
+        const monthlyResult = calculateMonthlyPayPeriodIncome(year, monthIndex, adjustmentHours);
         
-        // 2. 年間給与期間の計算
+        // 2. ★NEW★ 月次調整額を保存
+        saveAdjustment(year, monthIndex, monthlyResult.adjustmentIncome);
+
+        // 3. 年間給与期間の計算 (保存された調整額を全て反映)
         const annualResult = calculateAnnualIncome(year);
 
+        const adjustmentText = monthlyResult.adjustmentIncome !== 0 
+            ? ` (${monthlyResult.adjustmentIncome >= 0 ? '+' : ''}${monthlyResult.adjustmentIncome.toLocaleString('ja-JP')}円 調整込み)`
+            : '';
+
+        const adjustmentDetail = adjustmentHours !== 0 
+            ? ` | <span class="highlight-text">調整: ${adjustmentHours}時間</span>`
+            : '';
+
+        const annualAdjustmentText = annualResult.totalAdjustmentIncome !== 0
+            ? `<span class="text-yellow-300 font-bold">${annualResult.totalAdjustmentIncome >= 0 ? '+' : ''}${annualResult.totalAdjustmentIncome.toLocaleString('ja-JP')}円</span> の月次調整を反映`
+            : '';
+            
         // UI表示の更新
         document.getElementById("result").innerHTML = `
             <div class="monthly-result">
@@ -531,19 +645,28 @@
                 <p class="sub-value">
                     計算期間: ${monthlyResult.startDate.getFullYear()}/${monthlyResult.startDate.getMonth() + 1}/26 
                     〜 ${monthlyResult.endDate.getFullYear()}/${monthlyResult.endDate.getMonth() + 1}/25 
-                    (勤務日数: <span class="font-extrabold highlight-text">${monthlyResult.workingDays}日</span>)
+                </p>
+                <p class="sub-value mt-1">
+                    固定勤務: <span class="font-extrabold highlight-text">${monthlyResult.workingDays}日</span> / 
+                    <span class="font-extrabold highlight-text">${monthlyResult.totalHours}時間</span>
+                    ${adjustmentDetail}
+                    <br>
+                    <span class="text-sm text-yellow-300 font-bold">${adjustmentText}</span>
                 </p>
             </div>
             
             <div class="annual-value">
                 <div class="result-title">
-                    ${year}年の年間予測合計収入
+                    ${year}年の年間予測合計収入 (調整済み)
                 </div>
                 <p class="text-3xl md:text-5xl font-bold text-gray-300 mb-4">
                     <span class="highlight-value">${annualResult.income.toLocaleString('ja-JP')}<span class="currency-unit">円</span></span>
                 </p>
                 <p class="sub-value">
                     ⚠️ <span class="highlight-text">103万/ 123万/ 160万</span> の壁チェックに活用
+                </p>
+                <p class="sub-value text-sm mt-3">
+                    ${annualAdjustmentText}
                 </p>
                 <p class="info-footer">
                     年間対象期間: ${annualResult.startDate.getFullYear()}/1/28 〜 ${annualResult.endDate.getFullYear()}/12/28
@@ -553,8 +676,20 @@
             </div>
         `;
     }
+    
+    /**
+     * 全ての保存された月次調整データをリセットする
+     */
+    function resetAllAdjustments() {
+        if (confirm("全ての月次調整データをリセットします。よろしいですか？")) {
+            localStorage.removeItem('annualAdjustments');
+            calculateAndDisplayIncome(); // UIを再計算して更新
+            alert("月次調整データがリセットされました。");
+        }
+    }
 
     document.getElementById("calcBtn").addEventListener("click", calculateAndDisplayIncome);
+    document.getElementById("resetAdjustmentsBtn").addEventListener("click", resetAllAdjustments);
 
     // 初期表示の計算を実行
     // 現在の月を選択して初期表示
