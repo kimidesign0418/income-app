@@ -354,7 +354,6 @@
         <div class="input-group">
             <div>
                 <label class="block text-sm font-semibold text-red-300 mb-2 text-center">実働時間の調整 (±時間)</label>
-                <!-- NOTE: type="number" だとモバイルで小数点が入力しにくい場合があるため、必要に応じて type="text" に変更することを検討しても良い -->
                 <input id="adjustmentHours" type="number" value="0" placeholder="例: -7.5, +4" />
                 <p class="text-xs text-gray-500 mt-2 text-center">※休んだ時間: マイナス(例: -4), 追加で働いた時間: プラス(例: +3)</p>
             </div>
@@ -395,6 +394,8 @@
         "2025-07-21", "2025-08-11", "2025-09-15",
         "2025-09-23", "2025-10-13", "2025-11-03", "2025-11-23"
     ];
+    
+    const HOURLY_WAGE = 1116;
 
     /**
      * 指定された日が祝日かどうかを判定する
@@ -472,7 +473,6 @@
         let workingDays = 0;
         let totalHours = 0;
 
-        const hourlyWage = 1116;
         const dailyTransportFee = 460;
 
         const currentDate = new Date(startDate);
@@ -483,7 +483,7 @@
 
             if (hours > 0) {
                 // 勤務時間に応じた収入と交通費を加算
-                totalIncome += hours * hourlyWage + dailyTransportFee;
+                totalIncome += hours * HOURLY_WAGE + dailyTransportFee;
                 workingDays++;
                 totalHours += hours;
             }
@@ -515,9 +515,8 @@
         
         const fixedResult = calculateIncomeForPeriod(startDate, endDate);
         
-        const hourlyWage = 1116;
         // 調整時間による収入調整額を計算（四捨五入）
-        const adjustmentIncome = Math.round(adjustmentHours * hourlyWage);
+        const adjustmentIncome = Math.round(adjustmentHours * HOURLY_WAGE);
 
         const adjustedIncome = fixedResult.income + adjustmentIncome;
         
@@ -532,20 +531,40 @@
     }
 
     /**
-     * ★NEW★ 月次調整額をlocalStorageに保存する
+     * ★修正★ 月次調整時間 (±時間) をlocalStorageに保存する
      * @param {number} year - 対象年
      * @param {number} monthIndex - 対象月 (0-indexed: 0=1月)
-     * @param {number} adjustmentIncome - 調整による収入額 (円)
+     * @param {number} adjustmentHours - 調整時間 (±時間)
      */
-    function saveAdjustment(year, monthIndex, adjustmentIncome) {
+    function saveAdjustment(year, monthIndex, adjustmentHours) {
         // キー形式: YYYY-M (例: "2025-0" for Jan, "2025-11" for Dec)
         const key = `${year}-${monthIndex}`;
         try {
             const storedData = JSON.parse(localStorage.getItem('annualAdjustments') || '{}');
-            storedData[key] = adjustmentIncome;
+            // 調整時間そのものを保存
+            storedData[key] = adjustmentHours; 
             localStorage.setItem('annualAdjustments', JSON.stringify(storedData));
         } catch (error) {
             console.error("LocalStorageへの保存中にエラーが発生しました:", error);
+        }
+    }
+
+    /**
+     * ★NEW★ 月次調整時間 (±時間) をlocalStorageから読み込む
+     * @param {number} year - 対象年
+     * @param {number} monthIndex - 対象月 (0-indexed: 0=1月)
+     * @returns {number} 保存された調整時間 (±時間), なければ 0
+     */
+    function loadAdjustmentHours(year, monthIndex) {
+        const key = `${year}-${monthIndex}`;
+        try {
+            const storedData = JSON.parse(localStorage.getItem('annualAdjustments') || '{}');
+            // 保存された調整時間（数値）を返し、存在しない場合は 0 を返す
+            // 保存値が文字列になる可能性があるため、parseFloatで数値に変換
+            return parseFloat(storedData[key]) || 0; 
+        } catch (error) {
+            console.error("LocalStorageからの読み込み中にエラーが発生しました:", error);
+            return 0;
         }
     }
 
@@ -566,16 +585,22 @@
         // 1. 固定スケジュールによる年間収入を計算
         const fixedResult = calculateIncomeForPeriod(startDate, endDate);
         
-        // 2. localStorageから保存された全ての月次調整額を取得し、加算する
+        // 2. localStorageから保存された全ての月次調整時間を取得し、収入額に変換して加算する
         const storedData = JSON.parse(localStorage.getItem('annualAdjustments') || '{}');
         let totalAdjustmentIncome = 0;
+        let totalAdjustmentHours = 0;
 
-        // 1月から12月までの月次調整額を合計する
+        // 1月から12月までの月次調整**時間**を合計し、収入額に変換
         for (let monthIndex = 0; monthIndex < 12; monthIndex++) {
             const key = `${year}-${monthIndex}`;
-            // 保存された調整額がなければ 0
-            const adjustment = storedData[key] || 0; 
-            totalAdjustmentIncome += adjustment;
+            // 保存された調整時間 (adjustmentHours) を読み込む
+            const adjustmentHours = parseFloat(storedData[key]) || 0; 
+            
+            // 調整時間から調整収入額を計算
+            const adjustmentIncome = Math.round(adjustmentHours * HOURLY_WAGE); 
+            
+            totalAdjustmentIncome += adjustmentIncome;
+            totalAdjustmentHours += adjustmentHours; 
         }
 
         // 3. 調整を加えた最終的な年間収入
@@ -584,12 +609,33 @@
         return { 
             income: adjustedAnnualIncome, 
             workingDays: fixedResult.workingDays, 
-            totalHours: fixedResult.totalHours, 
+            totalHours: fixedResult.totalHours + totalAdjustmentHours, // 年間総時間にも調整時間を加算
             totalAdjustmentIncome: totalAdjustmentIncome, // 年次調整額を返す
             startDate: fixedResult.startDate, 
             endDate: fixedResult.endDate 
         };
     }
+
+    /**
+     * 選択されている年月に対応する調整時間を入力フィールドに復元する
+     */
+    function restoreAdjustmentInput() {
+        const yearInput = document.getElementById("year");
+        const monthSelect = document.getElementById("month");
+        const adjustmentInput = document.getElementById("adjustmentHours");
+
+        const year = parseInt(yearInput.value);
+        const monthIndex = parseInt(monthSelect.value);
+
+        if (isNaN(year) || isNaN(monthIndex)) return;
+
+        // LocalStorageから調整時間を読み込み
+        const savedHours = loadAdjustmentHours(year, monthIndex);
+        
+        // 入力フィールドに復元。0の場合は空ではなく'0'を設定
+        adjustmentInput.value = savedHours.toString();
+    }
+
 
     /**
      * 月次と年次の収入を計算し、結果をUIに表示する
@@ -601,7 +647,8 @@
         
         const year = parseInt(yearInput.value);
         const monthIndex = parseInt(monthSelect.value);
-        // parseFloat()で正確な数値（負の値や小数も含む）に変換
+        
+        // 計算実行時には、フィールドの現在の値を信頼する（ユーザーが手動で入力した値、または復元された値）
         const adjustmentHours = parseFloat(adjustmentInput.value) || 0;
 
         if (isNaN(year) || year < 2024 || year > 2030 || isNaN(monthIndex)) {
@@ -615,8 +662,8 @@
         // 1. 月次給与期間の計算 (調整込み)
         const monthlyResult = calculateMonthlyPayPeriodIncome(year, monthIndex, adjustmentHours);
         
-        // 2. ★NEW★ 月次調整額を保存
-        saveAdjustment(year, monthIndex, monthlyResult.adjustmentIncome);
+        // 2. ★修正★ 月次調整時間 (±時間) を保存
+        saveAdjustment(year, monthIndex, adjustmentHours);
 
         // 3. 年間給与期間の計算 (保存された調整額を全て反映)
         const annualResult = calculateAnnualIncome(year);
@@ -681,8 +728,11 @@
      * 全ての保存された月次調整データをリセットする
      */
     function resetAllAdjustments() {
+        // NOTE: alert() と confirm() はカスタムモーダルに置き換えるべきですが、今回は動作確認のためそのまま使用します。
+        // 厳密には、canvas環境ではconfirm/alertは非推奨です。
         if (confirm("全ての月次調整データをリセットします。よろしいですか？")) {
             localStorage.removeItem('annualAdjustments');
+            restoreAdjustmentInput(); // リセット後、現在の月も0に戻す
             calculateAndDisplayIncome(); // UIを再計算して更新
             alert("月次調整データがリセットされました。");
         }
@@ -691,11 +741,19 @@
     document.getElementById("calcBtn").addEventListener("click", calculateAndDisplayIncome);
     document.getElementById("resetAdjustmentsBtn").addEventListener("click", resetAllAdjustments);
 
-    // 初期表示の計算を実行
-    // 現在の月を選択して初期表示
+    // ★NEW: 年と月の変更時に入力フィールドを復元するリスナー
+    document.getElementById("year").addEventListener("change", restoreAdjustmentInput);
+    document.getElementById("month").addEventListener("change", restoreAdjustmentInput);
+    document.getElementById("month").addEventListener("change", calculateAndDisplayIncome); // 月が変わったら自動で計算結果も更新
+
+    // 初期表示の計算と入力値の復元を実行
     const today = new Date();
     document.getElementById("month").value = today.getMonth();
-    window.onload = calculateAndDisplayIncome;
+    
+    window.onload = function() {
+        restoreAdjustmentInput(); // ページロード時に、現在の月の調整値を復元
+        calculateAndDisplayIncome(); // 初期計算を実行
+    }
 </script>
 </body>
 </html>
